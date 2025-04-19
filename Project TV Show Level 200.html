@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Episodes</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      font-family: Courier, sans-serif;
+      background-color: #f0f0f0;
+      margin: 35px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 35px;
+      justify-content: center;
+    }
+    .card {
+      border: 1px solid #ccc;
+      padding: 20px;
+      width: 240px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+    }
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .card-summary {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .episodes ul {
+      list-style-type: none;
+      padding: 0;
+      font-size: 13px;
+    }
+    .episodes li {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>TV Shows and Episodes</h1>
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search episodes..." />
+    <button id="searchButton">Search</button>
+    <p id="showCount"></p>
+  </div>
+  <div id="root"></div>
+
+  <script>
+    const showsUrl = 'https://api.tvmaze.com/shows'; 
+    let allShows = []; 
+
+    // Fetch and display TV shows
+    fetch(showsUrl)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        allShows = data.slice(0, 6);
+        displayShows(allShows);
+      })
+      .catch(error => {
+        console.error('Error fetching TV show data:', error);
+        document.getElementById('root').innerHTML = `<p>Error loading shows. Check console.</p>`;
+      });
+
+    function displayShows(shows) {
+      const root = document.getElementById('root');
+      root.innerHTML = '';
+      const container = document.createElement('div');
+      container.classList.add('card-container');
+      root.appendChild(container);
+
+      shows.forEach((tvShow, index) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+
+        const showNumber = document.createElement('h3');
+        showNumber.textContent = `Show #${index + 1}`;
+
+        const title = document.createElement('h2');
+        title.textContent = tvShow.name;
+
+        const img = document.createElement('img');
+        img.src = tvShow.image?.medium || 'https://via.placeholder.com/250x375?text=No+Image';
+        img.alt = `Image of ${tvShow.name}`;
+
+        const summary = document.createElement('div');
+        summary.classList.add('card-summary');
+        summary.innerHTML = tvShow.summary || 'No summary available.';
+
+        const episodeSection = document.createElement('div');
+        episodeSection.innerHTML = '<strong>Loading episodes...</strong>';
+
+    
+        fetch(`https://api.tvmaze.com/shows/${tvShow.id}/episodes`)
+          .then(res => res.json())
+          .then(episodes => {
+            episodeSection.innerHTML = '';
+            const ul = document.createElement('ul');
+            ul.classList.add('episodes');
+
+            episodes.forEach(ep => {
+              const li = document.createElement('li');
+              li.textContent = `S${ep.season}E${ep.number}: ${ep.name}`;
+              ul.appendChild(li);
+            });
+
+            episodeSection.appendChild(ul);
+          })
+          .catch(err => {
+            episodeSection.innerHTML = 'Could not load episodes.';
+            console.error(err);
+          });
+
+        card.appendChild(showNumber);
+        card.appendChild(title);
+        card.appendChild(img);
+        card.appendChild(summary);
+        card.appendChild(episodeSection);
+
+        container.appendChild(card);
+      });
+
+      document.getElementById('showCount').textContent = `Total Shows: ${shows.length}`;
+    }
+
+    document.getElementById('searchButton').addEventListener('click', () => {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filteredShows = allShows.filter(show =>
+        show.name.toLowerCase().includes(query)
+      );
+      displayShows(filteredShows);
+    });
+  </script>
+</body>
+</html>
